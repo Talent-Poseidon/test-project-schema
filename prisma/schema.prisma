@@ -133,3 +133,88 @@ model ScenarioItem {
 
   @@unique([scenarioId, kamusId])
 }
+
+// ---------- Project Management ----------
+
+model Project {
+  id            String   @id @default(cuid())
+  name          String
+  description   String   @db.Text
+  configuration String   @db.Text
+  status        String   @default("draft") // draft | submitted
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  createdBy     String?
+
+  batches       ProjectBatch[]
+  assessors     ProjectAssessor[]
+  invitations   ProjectInvitation[]
+  events        ProjectEvent[]
+}
+
+model ProjectBatch {
+  id        String   @id @default(cuid())
+  projectId String
+  name      String
+  createdAt DateTime @default(now())
+
+  project   Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assessees ProjectAssessee[]
+}
+
+model ProjectAssessee {
+  id        String   @id @default(cuid())
+  batchId   String
+  name      String
+  email     String
+  createdAt DateTime @default(now())
+
+  batch       ProjectBatch        @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  invitations ProjectInvitation[]
+}
+
+model AssessorMaster {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  assignments ProjectAssessor[]
+}
+
+model ProjectAssessor {
+  id         String   @id @default(cuid())
+  projectId  String
+  assessorId String
+  createdAt  DateTime @default(now())
+
+  project    Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assessor   AssessorMaster @relation(fields: [assessorId], references: [id], onDelete: Restrict)
+
+  @@unique([projectId, assessorId])
+}
+
+model ProjectInvitation {
+  id         String    @id @default(cuid())
+  projectId  String
+  assesseeId String
+  email      String
+  status     String    @default("sent") // sent | delivered | expired
+  sentAt     DateTime  @default(now())
+  expiresAt  DateTime
+  createdAt  DateTime  @default(now())
+
+  project    Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  assessee   ProjectAssessee  @relation(fields: [assesseeId], references: [id], onDelete: Cascade)
+}
+
+model ProjectEvent {
+  id        String   @id @default(cuid())
+  projectId String
+  eventType String   // Submit Project | Assessee Notified | Assessor Assigned
+  payload   String   @db.Text
+  createdAt DateTime @default(now())
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
