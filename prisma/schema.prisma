@@ -48,7 +48,7 @@ model User {
   password      String?   // Hashed password for Credentials provider
   role          String    @default("user") // "user" | "admin"
   is_approved   Boolean   @default(false)  // Approval logic replacement
-  
+
   accounts      Account[]
   sessions      Session[]
 }
@@ -59,4 +59,77 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
+}
+
+// ---------- Master Data: Kamus ----------
+
+model Kamus {
+  id                    String   @id @default(cuid())
+  code                  String   @unique
+  name                  String
+  type                  String   // "potensi" | "kompetensi"
+  description           String   @db.Text
+  behavioralIndicators  String   @db.Text
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  createdBy             String?
+  updatedBy             String?
+
+  standarJabatanItems   StandarJabatanItem[]
+  scenarioItems         ScenarioItem[]
+}
+
+model KamusEvent {
+  id          String   @id @default(cuid())
+  eventType   String   // "Kamus Submitted"
+  payload     String   @db.Text
+  createdAt   DateTime @default(now())
+  createdBy   String?
+}
+
+model StandarJabatan {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  level       String?
+  description String?  @db.Text
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  items       StandarJabatanItem[]
+}
+
+model StandarJabatanItem {
+  id               String         @id @default(cuid())
+  standarJabatanId String
+  kamusId          String
+  expectedLevel    Int            @default(1)
+
+  standarJabatan   StandarJabatan @relation(fields: [standarJabatanId], references: [id], onDelete: Cascade)
+  kamus            Kamus          @relation(fields: [kamusId], references: [id], onDelete: Restrict)
+
+  @@unique([standarJabatanId, kamusId])
+}
+
+model Scenario {
+  id           String   @id @default(cuid())
+  name         String   @unique
+  scenarioType String
+  description  String?  @db.Text
+  durationMin  Int?
+  instructions String?  @db.Text
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  items        ScenarioItem[]
+}
+
+model ScenarioItem {
+  id         String   @id @default(cuid())
+  scenarioId String
+  kamusId    String
+
+  scenario   Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  kamus      Kamus    @relation(fields: [kamusId], references: [id], onDelete: Restrict)
+
+  @@unique([scenarioId, kamusId])
 }
