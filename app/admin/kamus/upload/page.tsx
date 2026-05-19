@@ -161,7 +161,7 @@ export default function KamusUploadPage() {
       const res = await fetch("/api/kamus/confirm-update", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: previewCsvContent }),
+        body: JSON.stringify({ content: previewCsvContent, mode: "merge" }),
       });
       const data = await res.json();
       if (!res.ok) {

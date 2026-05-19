@@ -13,6 +13,7 @@ export async function POST(request: NextRequest) {
 
     const contentType = request.headers.get("content-type") || "";
     let csvContent: string;
+    let mode: "replace" | "merge" = "replace";
 
     if (contentType.includes("multipart/form-data")) {
       const form = await request.formData();
@@ -24,9 +25,12 @@ export async function POST(request: NextRequest) {
         );
       }
       csvContent = await (file as File).text();
+      const formMode = form.get("mode");
+      if (formMode === "merge") mode = "merge";
     } else {
       const body = await request.json();
       csvContent = body.content ?? "";
+      if (body.mode === "merge") mode = "merge";
     }
 
     if (!csvContent || csvContent.trim().length === 0) {
@@ -54,7 +58,9 @@ export async function POST(request: NextRequest) {
     }));
     const diff = diffKamus(snapshot, parsed.rows);
 
-    const deleteCodes = diff.toDelete.map((d) => d.code);
+    const effectiveDeletes = mode === "merge" ? [] : diff.toDelete;
+
+    const deleteCodes = effectiveDeletes.map((d) => d.code);
     if (deleteCodes.length > 0) {
       const referencedInStandar = await prisma.standarJabatanItem.findMany({
         where: { kamus: { code: { in: deleteCodes } } },
@@ -108,7 +114,7 @@ export async function POST(request: NextRequest) {
           },
         });
       }
-      for (const item of diff.toDelete) {
+      for (const item of effectiveDeletes) {
         await tx.kamus.delete({ where: { code: item.code } });
       }
       await tx.kamusEvent.create({
@@ -117,7 +123,8 @@ export async function POST(request: NextRequest) {
           payload: JSON.stringify({
             created: diff.toCreate.length,
             updated: diff.toUpdate.length,
-            deleted: diff.toDelete.length,
+            deleted: effectiveDeletes.length,
+            mode,
           }),
           createdBy: userId,
         },
@@ -129,7 +136,7 @@ export async function POST(request: NextRequest) {
       summary: {
         toCreate: diff.toCreate.length,
         toUpdate: diff.toUpdate.length,
-        toDelete: diff.toDelete.length,
+        toDelete: effectiveDeletes.length,
       },
       event: "Kamus Submitted",
     });
