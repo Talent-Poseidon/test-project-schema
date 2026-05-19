@@ -9,6 +9,7 @@ import {
   Shield,
   LogOut,
   ChevronDown,
+  BookOpen,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -73,13 +74,27 @@ export function DashboardShell({ user, profile, children }: DashboardShellProps)
               <Link
                 href="/admin"
                 className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
-                  pathname.startsWith("/admin")
+                  pathname === "/admin"
                     ? "bg-primary/10 text-primary"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 }`}
               >
                 <Shield className="h-4 w-4" />
                 Admin
+              </Link>
+            )}
+            {profile.role === "admin" && (
+              <Link
+                href="/admin/kamus"
+                data-testid="nav-kamus-link"
+                className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                  pathname.startsWith("/admin/kamus")
+                    ? "bg-primary/10 text-primary"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                }`}
+              >
+                <BookOpen className="h-4 w-4" />
+                Kamus
               </Link>
             )}
           </nav>

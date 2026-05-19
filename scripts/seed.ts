@@ -58,7 +58,78 @@ async function main() {
     },
   });
 
-  console.log({ originalAdmin, testAdmin, testUser });
+  // Seed Kamus (free — not referenced, safe to delete)
+  const seedKamusPotensi = await prisma.kamus.upsert({
+    where: { code: 'SEED-POT-1' },
+    update: {},
+    create: {
+      code: 'SEED-POT-1',
+      name: 'Seed Analytical Thinking',
+      type: 'potensi',
+      description: 'Seeded potensi for E2E tests',
+      behavioralIndicators: 'Indicator A | Indicator B',
+    },
+  });
+
+  const seedKamusKompetensi = await prisma.kamus.upsert({
+    where: { code: 'SEED-KOM-1' },
+    update: {},
+    create: {
+      code: 'SEED-KOM-1',
+      name: 'Seed Communication',
+      type: 'kompetensi',
+      description: 'Seeded kompetensi for E2E tests',
+      behavioralIndicators: 'Indicator X | Indicator Y',
+    },
+  });
+
+  // Seed Kamus that is REFERENCED by Standar Jabatan — must NOT be deletable
+  const seedKamusUsed = await prisma.kamus.upsert({
+    where: { code: 'SEED-USED-1' },
+    update: {},
+    create: {
+      code: 'SEED-USED-1',
+      name: 'Seed Leadership (Used)',
+      type: 'kompetensi',
+      description: 'Seeded kompetensi that is referenced by a Standar Jabatan',
+      behavioralIndicators: 'Leads team | Motivates others',
+    },
+  });
+
+  const seedStandar = await prisma.standarJabatan.upsert({
+    where: { name: 'Seed Standar Manager' },
+    update: {},
+    create: {
+      name: 'Seed Standar Manager',
+      level: 'Manager',
+      description: 'Standar Jabatan referencing SEED-USED-1',
+    },
+  });
+
+  await prisma.standarJabatanItem.upsert({
+    where: {
+      standarJabatanId_kamusId: {
+        standarJabatanId: seedStandar.id,
+        kamusId: seedKamusUsed.id,
+      },
+    },
+    update: {},
+    create: {
+      standarJabatanId: seedStandar.id,
+      kamusId: seedKamusUsed.id,
+      expectedLevel: 3,
+    },
+  });
+
+  console.log({
+    originalAdmin,
+    testAdmin,
+    testUser,
+    seedKamusPotensi,
+    seedKamusKompetensi,
+    seedKamusUsed,
+    seedStandar,
+  });
 }
 
 main()
