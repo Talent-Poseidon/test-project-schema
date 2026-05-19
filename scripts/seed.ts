@@ -121,6 +121,81 @@ async function main() {
     },
   });
 
+  // Seed AssessorMaster for E2E tests (Assign Assessor feature)
+  const seedAssessor1 = await prisma.assessorMaster.upsert({
+    where: { email: 'assessor.one@example.com' },
+    update: { name: 'Seed Assessor One', active: true },
+    create: {
+      id: 'seed-assessor-1',
+      name: 'Seed Assessor One',
+      email: 'assessor.one@example.com',
+      active: true,
+    },
+  });
+
+  const seedAssessor2 = await prisma.assessorMaster.upsert({
+    where: { email: 'assessor.two@example.com' },
+    update: { name: 'Seed Assessor Two', active: true },
+    create: {
+      id: 'seed-assessor-2',
+      name: 'Seed Assessor Two',
+      email: 'assessor.two@example.com',
+      active: true,
+    },
+  });
+
+  // Seed a Project (with batch + assessee) for "list contains existing project" and
+  // invitation expiry/resend flows.
+  const seedProject = await prisma.project.upsert({
+    where: { id: 'seed-project-1' },
+    update: {},
+    create: {
+      id: 'seed-project-1',
+      name: 'Seed Project Alpha',
+      description: 'Seeded project used by E2E tests',
+      configuration: JSON.stringify({ template: 'default' }),
+      status: 'submitted',
+    },
+  });
+
+  const seedBatch = await prisma.projectBatch.upsert({
+    where: { id: 'seed-batch-1' },
+    update: {},
+    create: {
+      id: 'seed-batch-1',
+      projectId: seedProject.id,
+      name: 'Batch 1',
+    },
+  });
+
+  const seedAssessee = await prisma.projectAssessee.upsert({
+    where: { id: 'seed-assessee-1' },
+    update: {},
+    create: {
+      id: 'seed-assessee-1',
+      batchId: seedBatch.id,
+      name: 'Seed Assessee',
+      email: 'assessee.one@example.com',
+    },
+  });
+
+  // Seed an EXPIRED invitation so the resend flow has something to act on.
+  const expiredAt = new Date(Date.now() - 1000 * 60 * 60 * 24); // yesterday
+  const sentAt = new Date(Date.now() - 1000 * 60 * 60 * 24 * 8); // 8 days ago
+  const seedExpiredInvitation = await prisma.projectInvitation.upsert({
+    where: { id: 'seed-invitation-expired-1' },
+    update: { status: 'expired', sentAt, expiresAt: expiredAt },
+    create: {
+      id: 'seed-invitation-expired-1',
+      projectId: seedProject.id,
+      assesseeId: seedAssessee.id,
+      email: seedAssessee.email,
+      status: 'expired',
+      sentAt,
+      expiresAt: expiredAt,
+    },
+  });
+
   console.log({
     originalAdmin,
     testAdmin,
@@ -129,6 +204,12 @@ async function main() {
     seedKamusKompetensi,
     seedKamusUsed,
     seedStandar,
+    seedAssessor1,
+    seedAssessor2,
+    seedProject,
+    seedBatch,
+    seedAssessee,
+    seedExpiredInvitation,
   });
 }
 
